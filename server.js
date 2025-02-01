@@ -16,27 +16,11 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // Environment Variables
-const PORT = process.env.PORT || 3000;
-const DB_HOST = process.env.DB_HOST || 'localhost';
-const DB_USER = process.env.DB_USER || 'root';
-const DB_PASSWORD = process.env.DB_PASSWORD || '';
-const DB_NAME = process.env.DB_NAME || 'monitoring_db';
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+const connection = mysql.createConnection(process.env.DATABASE_URL);
 
-// Database Connection
-const db = mysql.createConnection({
-    host: DB_HOST,
-    user: DB_USER,
-    password: DB_PASSWORD,
-    database: DB_NAME,
-});
-db.connect((err) => {
-    if (err) {
-        console.error('Database connection failed:', err);
-        process.exit(1);
-    } else {
-        console.log('Connected to MySQL database 🚀');
-    }
+connection.connect(err => {
+    if (err) throw err;
+    console.log('Database Connected!');
 });
 
 // Middleware for authenticating JWT tokens
@@ -61,7 +45,7 @@ app.post('/auth/register', async (req, res) => {
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10); // Hash the password
-        const sql = 'INSERT INTO user (username, email, no_telp, password) VALUES (?, ?, ?, ?)';
+        const sql = 'INSERT INTO userdata (username, email, no_telp, password) VALUES (?, ?, ?, ?)';
         await db.promise().execute(sql, [username, email, no_telp, hashedPassword]);
         res.status(201).json({ message: 'User registered successfully' });
     } catch (err) {
@@ -119,7 +103,7 @@ app.post('/auth/login', async (req, res) => {
 
     try {
         // Fetch user from the database
-        const [rows] = await db.promise().execute('SELECT * FROM user WHERE email = ?', [email]);
+        const [rows] = await db.promise().execute('SELECT * FROM userdata WHERE email = ?', [email]);
 
         if (rows.length === 0) {
             return res.status(404).json({ error: 'User  not found' });
